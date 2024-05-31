@@ -28,7 +28,7 @@ class ChatServer {
   void run();
   void say_hello_to_client(int socket);
   void transpond_to_other_client(int socket, Packet* pack);
-  void recv_pack(int socket, Packet*& pack);
+  bool recv_pack(int socket, Packet*& pack);
 
   int socket_;
   int port_;

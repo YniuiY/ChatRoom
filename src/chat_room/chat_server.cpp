@@ -114,15 +114,17 @@ void ChatServer::run() {
       } else {
         // 接收客户端发送的消息
         Packet* pack = new Packet();
-        recv_pack(triggered_socket, pack);
+        bool ret = recv_pack(triggered_socket, pack);
 
-        // 转发给聊天室内其他客户端
-        for (auto client_socket : clients_socket_list_) {
-          if (client_socket != triggered_socket) {
-            transpond_to_other_client(client_socket, pack);
-          } else {
-            std::cout << "ignore self message\n";
+        if (ret) {
+          // 转发给聊天室内其他客户端
+          for (auto client_socket : clients_socket_list_) {
+            if (client_socket != triggered_socket) {
+              transpond_to_other_client(client_socket, pack);
+            }
           }
+        } else {
+          clients_socket_list_.remove(triggered_socket);
         }
 
         // 释放pack内存
@@ -153,10 +155,15 @@ void ChatServer::say_hello_to_client(int socket) {
   pack = nullptr;
 }
 
-void ChatServer::recv_pack(int socket, Packet*& pack) {
+bool ChatServer::recv_pack(int socket, Packet*& pack) {
+  bool ret{true};
   memset(pack, 0, sizeof(pack));
 
   int recv_byte = recvn(socket, &pack->header, sizeof(pack->header), MSG_PEEK);
+  if (recv_byte == 0) {
+      std::cout << "Client Exit Chat Room\n";
+      return false;
+  }
   if (recv_byte != sizeof(pack->header)) {
     std::cout << "Peek pack header failed\n";
   } else {
@@ -172,6 +179,8 @@ void ChatServer::recv_pack(int socket, Packet*& pack) {
     std::string msg{pack->data};
     std::cout << "server recv client msg: " << msg << std::endl;
   }
+
+  return ret;
 }
 
 void ChatServer::transpond_to_other_client(int socket, Packet* pack) {
